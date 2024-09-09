@@ -3,11 +3,19 @@ package app
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/rodrigopero/coderhouse-challenge/src/app/dependencies"
+	"github.com/rodrigopero/coderhouse-challenge/src/repositories/clients"
 	"net/http"
 )
 
+const (
+	dbPath = "./db/"
+)
+
 func Run() error {
-	//initializeDB
+	err := InitializeDB()
+	if err != nil {
+		return err
+	}
 
 	return startAPI()
 
@@ -27,4 +35,9 @@ func MapAPIRoutes(r *gin.Engine, manager dependencies.Manager) {
 			"message": "pong",
 		})
 	})
+}
+
+func InitializeDB() error {
+	_, err := clients.InitializeDbSqlite(dbPath)
+	return err
 }

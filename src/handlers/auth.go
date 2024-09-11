@@ -6,8 +6,13 @@ import (
 	"github.com/rodrigopero/coderhouse-challenge/src/handlers/dtos"
 	"github.com/rodrigopero/coderhouse-challenge/src/services"
 	"github.com/rodrigopero/coderhouse-challenge/src/utils/api_error"
+	auth_utils "github.com/rodrigopero/coderhouse-challenge/src/utils/auth"
 	"github.com/rodrigopero/coderhouse-challenge/src/utils/validation"
 	"net/http"
+)
+
+const (
+	authUserKey = "auth_user"
 )
 
 type Auth interface {
@@ -45,7 +50,7 @@ func (h AuthImpl) Authenticate(c *gin.Context) {
 
 	token, err := h.AuthService.AuthenticateUser(ctx, dto)
 	if err != nil {
-		c.JSON(api_error.GetStatus(err), api_error.GetMessage(err))
+		c.JSON(api_error.GetStatus(err), err)
 		return
 	}
 
@@ -62,18 +67,20 @@ func (h AuthImpl) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		valid, err := h.AuthService.IsValidToken(ctx, token)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, api_error.GetMessage(err))
+		valid := h.AuthService.IsValidToken(ctx, token)
+		if !valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, api_error.NewApiError(http.StatusUnauthorized, "unauthorized user"))
 			return
 		}
 
-		if !valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, "unauthorized user")
+		username, err := h.AuthService.GetTokenUsername(ctx, token)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, api_error.NewApiError(http.StatusInternalServerError, "error validating token"))
 			return
 		}
+
+		auth_utils.SetAuthUser(c, username)
 
 		c.Next()
 	}
-
 }

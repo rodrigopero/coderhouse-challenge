@@ -24,7 +24,8 @@ var (
 
 type Auth interface {
 	AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDTO) (string, error)
-	IsValidToken(ctx context.Context, token string) (bool, error)
+	IsValidToken(ctx context.Context, token string) bool
+	GetTokenUsername(ctx context.Context, token string) (string, error)
 }
 
 type AuthDependencies struct {
@@ -44,7 +45,7 @@ func NewAuthImpl(dependencies AuthDependencies) AuthImpl {
 func (a AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDTO) (string, error) {
 
 	user, err := a.UserRepository.GetUserByUsername(ctx, dto.Username)
-	if errors.Is(err, repositories.NotFoundError) {
+	if errors.Is(err, repositories.UserNotFoundError) {
 		return "", UnauthorizedError
 	}
 
@@ -61,8 +62,8 @@ func (a AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDT
 	return token, nil
 }
 
-func (a AuthImpl) IsValidToken(ctx context.Context, token string) (bool, error) {
-	tokenData, err := jwt.ParseWithClaims(token, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+func (a AuthImpl) IsValidToken(ctx context.Context, token string) bool {
+	tokenData, _ := jwt.ParseWithClaims(token, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
 			return nil, errors.New("invalid method")
@@ -71,14 +72,23 @@ func (a AuthImpl) IsValidToken(ctx context.Context, token string) (bool, error) 
 		return []byte(JWTKey), nil
 	})
 
-	if err != nil {
-		return false, nil
-	}
 	if _, ok := tokenData.Claims.(*domain.CustomClaims); ok && tokenData.Valid {
-		return true, nil
+		return true
 	} else {
-		return false, nil
+		return false
 	}
+}
+
+func (a AuthImpl) GetTokenUsername(ctx context.Context, asd string) (string, error) {
+	token, err := jwt.ParseWithClaims(asd, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(JWTKey), nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	claims, _ := token.Claims.(*domain.CustomClaims)
+	return claims.Username, nil
 }
 
 func checkValidPassword(userPassword []byte, authPassword string) bool {

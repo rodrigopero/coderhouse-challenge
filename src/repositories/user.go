@@ -4,22 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	api_error "github.com/rodrigopero/coderhouse-challenge/src/utils/api_error"
+	"github.com/rodrigopero/coderhouse-challenge/src/utils/api_error"
 	"net/http"
 	"time"
 )
 
 const (
-	insertStmt           = "INSERT INTO USERS (USERNAME, PASSWORD, STATUS, CREATION_DATE, MODIFICATION_DATE) VALUES (?,?,?,?,?)"
-	selectByUsernameStmt = "SELECT ID, USERNAME, PASSWORD, STATUS, CREATION_DATE, MODIFICATION_DATE FROM USERS WHERE USERNAME = ?"
+	insertUserStmt           = "INSERT INTO USERS (USERNAME, PASSWORD, CREATION_DATE, MODIFICATION_DATE) VALUES (?,?,?,?)"
+	selectUserByUsernameStmt = "SELECT ID, USERNAME, PASSWORD, CREATION_DATE, MODIFICATION_DATE FROM USERS WHERE USERNAME = ?"
 )
 
 var (
-	NotFoundError = api_error.NewApiError(http.StatusNotFound, "user not found")
+	UserNotFoundError = api_error.NewApiError(http.StatusNotFound, "user not found")
 )
 
 type User interface {
-	SaveUser(ctx context.Context, user UserEntity) error
+	SaveUser(ctx context.Context, user UserEntity) (int, error)
 	GetUserByUsername(ctx context.Context, username string) (*UserEntity, error)
 }
 
@@ -41,30 +41,34 @@ type UserEntity struct {
 	Id               int
 	Username         string
 	Password         []byte
-	Status           string
 	CreationDate     string
 	ModificationDate string
 }
 
-func (r UserImpl) SaveUser(ctx context.Context, user UserEntity) error {
+func (r UserImpl) SaveUser(ctx context.Context, user UserEntity) (int, error) {
 	timeNow := time.Now()
 
-	_, err := r.database.ExecContext(ctx, insertStmt, user.Username, user.Password, user.Status, timeNow, timeNow)
+	res, err := r.database.ExecContext(ctx, insertUserStmt, user.Username, user.Password, timeNow, timeNow)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	insertedId, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(insertedId), nil
 }
 
 func (r UserImpl) GetUserByUsername(ctx context.Context, username string) (*UserEntity, error) {
-	row := r.database.QueryRowContext(ctx, selectByUsernameStmt, username)
+	row := r.database.QueryRowContext(ctx, selectUserByUsernameStmt, username)
 
 	var user UserEntity
-	err := row.Scan(&user.Id, &user.Username, &user.Password, &user.Status, &user.CreationDate, &user.ModificationDate)
+	err := row.Scan(&user.Id, &user.Username, &user.Password, &user.CreationDate, &user.ModificationDate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFoundError
+			return nil, UserNotFoundError
 		}
 		return nil, err
 	}

@@ -15,7 +15,7 @@ var (
 	creationSentences = map[string]string{
 		"users": `CREATE TABLE IF NOT EXISTS users(
 						id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-						username TEXT,
+						username TEXT UNIQUE,
 						password TEXT,
 						status TEXT,
 						creation_date TEXT,
@@ -24,21 +24,19 @@ var (
 		"accounts": `CREATE TABLE IF NOT EXISTS accounts(
 						id integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 						user_id INTEGER,
-						currency TEXT,
 						balance REAL,
-						status TEXT,
 						creation_date TEXT,
 						modification_date TEXT,
 						FOREIGN KEY (user_id) REFERENCES users(id)
 					)`,
-		"historic": `CREATE TABLE IF NOT EXISTS historic(
+		"historic": `CREATE TABLE IF NOT EXISTS transactions(
 						id integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 						user_id INTEGER,
 						account_id INTEGER,
 						amount REAL,
-						status TEXT,
-						creation_date TEXT,
-						modification_date TEXT,
+						partial_balance REAL,
+						type REAL,
+						date TEXT,
 						FOREIGN KEY (user_id) REFERENCES users(id),
 						FOREIGN KEY (account_id) REFERENCES accounts(id)
 					)`,

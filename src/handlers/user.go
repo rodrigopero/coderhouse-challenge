@@ -45,7 +45,7 @@ func (h UserImpl) CreateUser(c *gin.Context) {
 
 	err = h.userService.CreateUser(ctx, dto)
 	if err != nil {
-		c.JSON(api_error.GetStatus(err), api_error.GetMessage(err))
+		c.JSON(api_error.GetStatus(err), err)
 		return
 	}
 

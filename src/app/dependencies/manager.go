@@ -9,6 +9,7 @@ const (
 type Manager interface {
 	UserHandler() handlers.User
 	AuthHandler() handlers.Auth
+	AccountHandler() handlers.Account
 }
 
 func NewManager() Manager {

@@ -7,8 +7,8 @@ import (
 )
 
 type ApiError struct {
-	Status  int
-	Message string
+	Status  int    `json:"status"`
+	Message string `json:"message"`
 }
 
 func GetStatus(err error) int {
@@ -19,16 +19,6 @@ func GetStatus(err error) int {
 		status = apiErr.Status
 	}
 	return status
-}
-
-func GetMessage(err error) string {
-	msg := err.Error()
-
-	var apiErr ApiError
-	if errors.As(err, &apiErr) {
-		msg = apiErr.Message
-	}
-	return msg
 }
 
 func NewApiError(status int, message string) error {

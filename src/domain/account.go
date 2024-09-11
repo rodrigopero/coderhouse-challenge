@@ -1,5 +1,9 @@
 package domain
 
+import (
+	"time"
+)
+
 type Account struct {
 	Balance float64
 }
@@ -10,4 +14,5 @@ type Transaction struct {
 	Amount         float64
 	Type           string
 	PartialBalance float64
+	Date           time.Time
 }

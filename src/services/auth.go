@@ -15,7 +15,7 @@ import (
 
 const (
 	JWTKey            = "c0D3rH0u5E-Ch411eNg3"
-	JWTExpirationTime = time.Minute * time.Duration(1)
+	JWTExpirationTime = time.Minute * time.Duration(15)
 )
 
 var (
@@ -42,9 +42,9 @@ func NewAuthImpl(dependencies AuthDependencies) AuthImpl {
 	}
 }
 
-func (a AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDTO) (string, error) {
+func (s AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDTO) (string, error) {
 
-	user, err := a.UserRepository.GetUserByUsername(ctx, dto.Username)
+	user, err := s.UserRepository.GetUserByUsername(ctx, dto.Username)
 	if errors.Is(err, repositories.UserNotFoundError) {
 		return "", UnauthorizedError
 	}
@@ -62,7 +62,7 @@ func (a AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDT
 	return token, nil
 }
 
-func (a AuthImpl) IsValidToken(ctx context.Context, token string) bool {
+func (s AuthImpl) IsValidToken(ctx context.Context, token string) bool {
 	tokenData, _ := jwt.ParseWithClaims(token, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
@@ -79,7 +79,7 @@ func (a AuthImpl) IsValidToken(ctx context.Context, token string) bool {
 	}
 }
 
-func (a AuthImpl) GetTokenUsername(ctx context.Context, asd string) (string, error) {
+func (s AuthImpl) GetTokenUsername(ctx context.Context, asd string) (string, error) {
 	token, err := jwt.ParseWithClaims(asd, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(JWTKey), nil
 	})

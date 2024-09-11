@@ -10,15 +10,16 @@ import (
 )
 
 type Production struct {
-	userHandler       handlers.User
-	authHandler       handlers.Auth
-	accountHandler    handlers.Account
-	userService       services.User
-	authService       services.Auth
-	accountService    services.Account
-	userRepository    repositories.User
-	accountRepository repositories.Account
-	databaseClient    *sql.DB
+	userHandler           handlers.User
+	authHandler           handlers.Auth
+	accountHandler        handlers.Account
+	userService           services.User
+	authService           services.Auth
+	accountService        services.Account
+	userRepository        repositories.User
+	accountRepository     repositories.Account
+	transactionRepository repositories.Transaction
+	databaseClient        *sql.DB
 }
 
 // Handlers
@@ -77,7 +78,8 @@ func (p *Production) AuthService() services.Auth {
 func (p *Production) AccountService() services.Account {
 	if p.accountService == nil {
 		dependencies := services.AccountDependencies{
-			AccountRepository: p.AccountRepository(),
+			AccountRepository:     p.AccountRepository(),
+			TransactionRepository: p.TransactionRepository(),
 		}
 		p.accountService = services.NewAccountImpl(dependencies)
 	}
@@ -103,6 +105,16 @@ func (p *Production) AccountRepository() repositories.Account {
 		p.accountRepository = repositories.NewAccountImpl(dependencies)
 	}
 	return p.accountRepository
+}
+
+func (p *Production) TransactionRepository() repositories.Transaction {
+	if p.transactionRepository == nil {
+		dependencies := repositories.TransactionDependencies{
+			Database: p.DatabaseClient(),
+		}
+		p.transactionRepository = repositories.NewTransactionImpl(dependencies)
+	}
+	return p.transactionRepository
 }
 
 // Others

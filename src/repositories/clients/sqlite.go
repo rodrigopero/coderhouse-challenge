@@ -35,7 +35,7 @@ var (
 						account_id INTEGER,
 						amount REAL,
 						partial_balance REAL,
-						type REAL,
+						type TEXT,
 						date TEXT,
 						FOREIGN KEY (user_id) REFERENCES users(id),
 						FOREIGN KEY (account_id) REFERENCES accounts(id)

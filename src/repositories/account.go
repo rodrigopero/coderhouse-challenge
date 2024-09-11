@@ -14,6 +14,7 @@ const (
 
 	insertAccountStmt           = "INSERT INTO ACCOUNTS (USER_ID, BALANCE, CREATION_DATE, MODIFICATION_DATE)VALUES (?,?,?,?)"
 	selectAccountByUsernameStmt = "SELECT A.ID, A.USER_ID, A.BALANCE, A.CREATION_DATE, A.MODIFICATION_DATE FROM ACCOUNTS A JOIN USERS U ON U.ID = A.USER_ID WHERE U.USERNAME = ?"
+	updateAccountBalanceStmt    = "UPDATE ACCOUNTS SET BALANCE = ? WHERE ID = ?"
 )
 
 var (
@@ -23,6 +24,7 @@ var (
 type Account interface {
 	SaveAccount(ctx context.Context, account AccountEntity) error
 	GetAccountByUsername(ctx context.Context, username string) (*AccountEntity, error)
+	UpdateAccountBalance(ctx context.Context, account AccountEntity) error
 }
 
 type AccountDependencies struct {
@@ -71,4 +73,14 @@ func (r AccountImpl) GetAccountByUsername(ctx context.Context, username string) 
 	}
 
 	return &account, nil
+}
+
+func (r AccountImpl) UpdateAccountBalance(ctx context.Context, account AccountEntity) error {
+	_, err := r.database.ExecContext(ctx, updateAccountBalanceStmt, account.Balance, account.Id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

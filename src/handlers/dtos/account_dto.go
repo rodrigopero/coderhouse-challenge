@@ -11,7 +11,7 @@ type WithdrawDTO struct {
 }
 
 type BalanceResponse struct {
-	Amount float64 `json:"amount"`
+	Balance float64 `json:"balance"`
 }
 
 type HistoryResponse struct {

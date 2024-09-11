@@ -29,6 +29,6 @@ func MapAPIRoutes(r *gin.Engine, depManager dependencies.Manager) {
 	account.GET("/balance", deps.AccountHandler.GetBalance)
 	account.POST("/deposit", deps.AccountHandler.Deposit)
 	account.POST("/withdraw", deps.AccountHandler.Withdraw)
-	account.POST("/transactions", deps.AccountHandler.GetTransactionHistory)
+	account.GET("/transactions", deps.AccountHandler.GetTransactionHistory)
 
 }

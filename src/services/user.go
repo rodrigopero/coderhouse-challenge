@@ -38,10 +38,10 @@ func NewUserImpl(dependencies UserDependencies) UserImpl {
 	}
 }
 
-func (u UserImpl) CreateUser(ctx context.Context, dto dtos.CreateUserDTO) error {
+func (s UserImpl) CreateUser(ctx context.Context, dto dtos.CreateUserDTO) error {
 	user := dto.ToDomain()
 
-	_, err := u.userRepository.GetUserByUsername(ctx, user.Username)
+	_, err := s.userRepository.GetUserByUsername(ctx, user.Username)
 	if err == nil {
 		return AlreadyExistsErr
 	} else if !errors.Is(err, repositories.UserNotFoundError) {
@@ -58,7 +58,7 @@ func (u UserImpl) CreateUser(ctx context.Context, dto dtos.CreateUserDTO) error 
 		Password: hashedPass,
 	}
 
-	userId, err := u.userRepository.SaveUser(ctx, userEntity)
+	userId, err := s.userRepository.SaveUser(ctx, userEntity)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (u UserImpl) CreateUser(ctx context.Context, dto dtos.CreateUserDTO) error 
 		UserId: userId,
 	}
 
-	err = u.accountRepository.SaveAccount(ctx, accountEntity)
+	err = s.accountRepository.SaveAccount(ctx, accountEntity)
 	if err != nil {
 		return err
 	}

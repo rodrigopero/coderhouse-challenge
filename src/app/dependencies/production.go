@@ -10,7 +10,9 @@ import (
 
 type Production struct {
 	userHandler    handlers.User
+	authHandler    handlers.Auth
 	userService    services.User
+	authService    services.Auth
 	userRepository repositories.User
 }
 
@@ -25,6 +27,16 @@ func (p *Production) UserHandler() handlers.User {
 	return p.userHandler
 }
 
+func (p *Production) AuthHandler() handlers.Auth {
+	if p.authHandler == nil {
+		dependencies := handlers.AuthDependencies{
+			AuthService: p.AuthService(),
+		}
+		p.authHandler = handlers.NewAuthImpl(dependencies)
+	}
+	return p.authHandler
+}
+
 // Services
 func (p *Production) UserService() services.User {
 	if p.userService == nil {
@@ -34,6 +46,16 @@ func (p *Production) UserService() services.User {
 		p.userService = services.NewUserImpl(dependencies)
 	}
 	return p.userService
+}
+
+func (p *Production) AuthService() services.Auth {
+	if p.authService == nil {
+		dependencies := services.AuthDependencies{
+			UserRepository: p.UserRepository(),
+		}
+		p.authService = services.NewAuthImpl(dependencies)
+	}
+	return p.authService
 }
 
 // Repositories

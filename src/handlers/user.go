@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/rodrigopero/coderhouse-challenge/src/handlers/dtos"
 	"github.com/rodrigopero/coderhouse-challenge/src/services"
-	"github.com/rodrigopero/coderhouse-challenge/src/utils"
-	"github.com/rodrigopero/coderhouse-challenge/src/utils/errors"
+	"github.com/rodrigopero/coderhouse-challenge/src/utils/api_error"
+	"github.com/rodrigopero/coderhouse-challenge/src/utils/validation"
 	"net/http"
 )
 
@@ -34,16 +35,17 @@ func (h UserImpl) CreateUser(c *gin.Context) {
 	err := c.BindJSON(&dto)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, "invalid body")
+		return
 	}
-	err = utils.GetValidatorInstance().Struct(dto)
+	err = validation.GetValidatorInstance().Struct(dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, "invalid body")
+		c.JSON(api_error.GetStatus(err), validation.GetErrorList(err.(validator.ValidationErrors)))
 		return
 	}
 
 	err = h.userService.CreateUser(ctx, dto)
 	if err != nil {
-		c.JSON(errors.GetStatus(err), errors.GetMessage(err))
+		c.JSON(api_error.GetStatus(err), api_error.GetMessage(err))
 		return
 	}
 

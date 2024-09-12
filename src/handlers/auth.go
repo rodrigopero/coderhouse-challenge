@@ -6,7 +6,7 @@ import (
 	"github.com/rodrigopero/coderhouse-challenge/src/handlers/dtos"
 	"github.com/rodrigopero/coderhouse-challenge/src/services"
 	"github.com/rodrigopero/coderhouse-challenge/src/utils/api_error"
-	auth_utils "github.com/rodrigopero/coderhouse-challenge/src/utils/auth"
+	"github.com/rodrigopero/coderhouse-challenge/src/utils/auth"
 	"github.com/rodrigopero/coderhouse-challenge/src/utils/validation"
 	"net/http"
 )

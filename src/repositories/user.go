@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	insertUserStmt           = "INSERT INTO USERS (USERNAME, PASSWORD, CREATION_DATE, MODIFICATION_DATE) VALUES (?,?,?,?)"
-	selectUserByUsernameStmt = "SELECT ID, USERNAME, PASSWORD, CREATION_DATE, MODIFICATION_DATE FROM USERS WHERE USERNAME = ?"
+	insertUserStmt             = "INSERT INTO USERS (USERNAME, PASSWORD, CREATION_DATE, MODIFICATION_DATE, STATUS, LOGIN_ATTEMPTS) VALUES (?,?,?,?,?,?)"
+	selectUserByUsernameStmt   = "SELECT ID, USERNAME, PASSWORD, CREATION_DATE, MODIFICATION_DATE, LOGIN_ATTEMPTS, STATUS FROM USERS WHERE USERNAME = ?"
+	updateUserLoginAttemptStmt = "UPDATE USERS SET LOGIN_ATTEMPTS = ? WHERE ID = ?"
+	updateUserStatusStmt       = "UPDATE USERS SET STATUS = ? WHERE ID = ?"
 )
 
 var (
@@ -21,6 +23,8 @@ var (
 type User interface {
 	SaveUser(ctx context.Context, user UserEntity) (int, error)
 	GetUserByUsername(ctx context.Context, username string) (*UserEntity, error)
+	UpdateUserLoginAttempt(ctx context.Context, user UserEntity) error
+	UpdateUserStatus(ctx context.Context, user UserEntity) error
 }
 
 type UserImpl struct {
@@ -40,6 +44,8 @@ func NewUserImpl(dependencies UserDependencies) UserImpl {
 type UserEntity struct {
 	Id               int
 	Username         string
+	LoginAttempt     int
+	Status           string
 	Password         []byte
 	CreationDate     string
 	ModificationDate string
@@ -48,7 +54,7 @@ type UserEntity struct {
 func (r UserImpl) SaveUser(ctx context.Context, user UserEntity) (int, error) {
 	timeNow := time.Now()
 
-	res, err := r.database.ExecContext(ctx, insertUserStmt, user.Username, user.Password, timeNow, timeNow)
+	res, err := r.database.ExecContext(ctx, insertUserStmt, user.Username, user.Password, timeNow, timeNow, user.Status, user.LoginAttempt)
 	if err != nil {
 		return 0, err
 	}
@@ -65,7 +71,7 @@ func (r UserImpl) GetUserByUsername(ctx context.Context, username string) (*User
 	row := r.database.QueryRowContext(ctx, selectUserByUsernameStmt, username)
 
 	var user UserEntity
-	err := row.Scan(&user.Id, &user.Username, &user.Password, &user.CreationDate, &user.ModificationDate)
+	err := row.Scan(&user.Id, &user.Username, &user.Password, &user.CreationDate, &user.ModificationDate, &user.LoginAttempt, &user.Status)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, UserNotFoundError
@@ -74,4 +80,24 @@ func (r UserImpl) GetUserByUsername(ctx context.Context, username string) (*User
 	}
 
 	return &user, nil
+}
+
+func (r UserImpl) UpdateUserLoginAttempt(ctx context.Context, user UserEntity) error {
+	_, err := r.database.ExecContext(ctx, updateUserLoginAttemptStmt, user.LoginAttempt, user.Id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r UserImpl) UpdateUserStatus(ctx context.Context, user UserEntity) error {
+	_, err := r.database.ExecContext(ctx, updateUserStatusStmt, user.Status, user.Id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -19,7 +19,8 @@ var (
 						password TEXT,
 						status TEXT,
 						creation_date TEXT,
-						modification_date TEXT
+						modification_date TEXT,
+						login_attempts INTEGER
 					)`,
 		"accounts": `CREATE TABLE IF NOT EXISTS accounts(
 						id integer NOT NULL PRIMARY KEY AUTOINCREMENT,

@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	userActiveStatus = "active"
+	activeUserStatus  = "active"
+	blockedUserStatus = "blocked"
 )
 
 var (
@@ -56,6 +57,7 @@ func (s UserImpl) CreateUser(ctx context.Context, dto dtos.CreateUserDTO) error 
 	userEntity := repositories.UserEntity{
 		Username: user.Username,
 		Password: hashedPass,
+		Status:   activeUserStatus,
 	}
 
 	userId, err := s.userRepository.SaveUser(ctx, userEntity)

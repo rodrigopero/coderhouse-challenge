@@ -14,12 +14,15 @@ import (
 )
 
 const (
-	JWTKey            = "c0D3rH0u5E-Ch411eNg3"
-	JWTExpirationTime = time.Minute * time.Duration(15)
+	jwtKey            = "c0D3rH0u5E-Ch411eNg3"
+	jwtExpirationTime = time.Minute * time.Duration(15)
+	maxLoginAttempts  = 3
 )
 
 var (
-	UnauthorizedError = api_error.NewApiError(http.StatusUnauthorized, "user not authorized")
+	UnauthorizedError            = api_error.NewApiError(http.StatusUnauthorized, "user not authorized")
+	IncorrectAuthenticationError = api_error.NewApiError(http.StatusUnauthorized, "incorrect username or password")
+	BlockedUserError             = api_error.NewApiError(http.StatusUnauthorized, "user is blocked")
 )
 
 type Auth interface {
@@ -49,9 +52,25 @@ func (s AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDT
 		return "", UnauthorizedError
 	}
 
+	if user.Status == blockedUserStatus {
+		return "", BlockedUserError
+	}
+
 	passwordValid := checkValidPassword(user.Password, dto.Password)
 	if !passwordValid {
-		return "", UnauthorizedError
+
+		user.LoginAttempt += 1
+		err = s.UserRepository.UpdateUserLoginAttempt(ctx, *user)
+		if err != nil {
+			return "", err
+		}
+		if user.LoginAttempt > maxLoginAttempts {
+			user.Status = blockedUserStatus
+			err = s.UserRepository.UpdateUserStatus(ctx, *user)
+			return "", BlockedUserError
+		}
+
+		return "", IncorrectAuthenticationError
 	}
 
 	token, err := generateToken(user.Username)
@@ -69,7 +88,7 @@ func (s AuthImpl) IsValidToken(ctx context.Context, token string) bool {
 			return nil, errors.New("invalid method")
 		}
 
-		return []byte(JWTKey), nil
+		return []byte(jwtKey), nil
 	})
 
 	if _, ok := tokenData.Claims.(*domain.CustomClaims); ok && tokenData.Valid {
@@ -81,7 +100,7 @@ func (s AuthImpl) IsValidToken(ctx context.Context, token string) bool {
 
 func (s AuthImpl) GetTokenUsername(ctx context.Context, asd string) (string, error) {
 	token, err := jwt.ParseWithClaims(asd, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(JWTKey), nil
+		return []byte(jwtKey), nil
 	})
 	if err != nil {
 		return "", err
@@ -100,12 +119,12 @@ func generateToken(username string) (string, error) {
 	claims := domain.CustomClaims{
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(JWTExpirationTime)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(jwtExpirationTime)),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte(JWTKey))
+	tokenStr, err := token.SignedString([]byte(jwtKey))
 	if err != nil {
 		return "", err
 	}

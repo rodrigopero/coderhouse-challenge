@@ -17,7 +17,7 @@ const (
 
 var (
 	UnexpectedError   = api_error.NewApiError(http.StatusUnauthorized, "unexpected error")
-	MissingTokenError = api_error.NewApiError(http.StatusUnauthorized, "missing authorization token")
+	MissingTokenError = api_error.NewApiError(http.StatusForbidden, "missing authorization token")
 )
 
 type Auth interface {
@@ -69,7 +69,7 @@ func (h AuthImpl) AuthMiddleware() gin.HandlerFunc {
 		token := c.Request.Header.Get(tokenHeader)
 
 		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, MissingTokenError)
+			c.AbortWithStatusJSON(http.StatusForbidden, MissingTokenError)
 			return
 		}
 

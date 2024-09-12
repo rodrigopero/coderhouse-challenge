@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	envVarsFilename = "vars.env"
+	envVarsFilename = "env/vars.env"
 )
 
 func SetEnvVars() {

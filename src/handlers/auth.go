@@ -12,7 +12,12 @@ import (
 )
 
 const (
-	authUserKey = "auth_user"
+	tokenHeader = "token"
+)
+
+var (
+	UnexpectedError   = api_error.NewApiError(http.StatusUnauthorized, "unexpected error")
+	MissingTokenError = api_error.NewApiError(http.StatusUnauthorized, "missing authorization token")
 )
 
 type Auth interface {
@@ -40,8 +45,9 @@ func (h AuthImpl) Authenticate(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, "invalid body"))
+		c.JSON(http.StatusBadRequest, InvalidBodyError)
 	}
+
 	err = validation.GetValidatorInstance().Struct(dto)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, validation.GetErrors(err.(validator.ValidationErrors))))
@@ -60,22 +66,22 @@ func (h AuthImpl) Authenticate(c *gin.Context) {
 func (h AuthImpl) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
-		token := c.Request.Header.Get("token")
+		token := c.Request.Header.Get(tokenHeader)
 
 		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, "missing authorization token")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, MissingTokenError)
 			return
 		}
 
 		valid := h.AuthService.IsValidToken(ctx, token)
 		if !valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, api_error.NewApiError(http.StatusUnauthorized, "unauthorized user"))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, UnauthorizedUserError)
 			return
 		}
 
 		username, err := h.AuthService.GetTokenUsername(ctx, token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, api_error.NewApiError(http.StatusInternalServerError, "error validating token"))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, UnexpectedError)
 			return
 		}
 

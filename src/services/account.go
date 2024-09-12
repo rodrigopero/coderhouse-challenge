@@ -41,7 +41,6 @@ func NewAccountImpl(dependencies AccountDependencies) AccountImpl {
 
 func (s AccountImpl) GetAccount(ctx context.Context, username string, currency string) (*domain.Account, error) {
 	accountEntity, err := s.AccountRepository.GetAccountByUsernameAndCurrency(ctx, username, currency)
-
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,6 @@ func (s AccountImpl) GetAllAccounts(ctx context.Context, username string) ([]dom
 	}
 
 	var accounts []domain.Account
-
 	for _, accountEntity := range accountEntities {
 		accounts = append(accounts, domain.Account{Balance: accountEntity.Balance, Currency: accountEntity.Currency})
 	}
@@ -133,7 +131,6 @@ func (s AccountImpl) GetTransactionsHistory(ctx context.Context, username string
 	var transactions []domain.Transaction
 
 	for _, transactionEntity := range transactionEntityList {
-
 		parsedTime, err := parseTime(transactionEntity.Date)
 		if err != nil {
 			return nil, err

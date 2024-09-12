@@ -19,6 +19,12 @@ const (
 	defaultLimit = 10
 )
 
+var (
+	UnauthorizedUserError  = api_error.NewApiError(http.StatusUnauthorized, "user not authorized")
+	InvalidLimitParamError = api_error.NewApiError(http.StatusBadRequest, "invalid limit param")
+	InvalidBodyError       = api_error.NewApiError(http.StatusBadRequest, "invalid body")
+)
+
 type Account interface {
 	GetBalance(c *gin.Context)
 	Deposit(c *gin.Context)
@@ -45,7 +51,7 @@ func (h AccountImpl) GetBalance(c *gin.Context) {
 
 	username := auth_utils.GetAuthUser(c)
 	if username == "" {
-		c.JSON(http.StatusUnauthorized, api_error.NewApiError(http.StatusUnauthorized, "unauthorized user"))
+		c.JSON(http.StatusUnauthorized, UnauthorizedUserError)
 		return
 	}
 
@@ -69,15 +75,14 @@ func (h AccountImpl) Deposit(c *gin.Context) {
 
 	username := auth_utils.GetAuthUser(c)
 	if username == "" {
-		c.JSON(http.StatusUnauthorized, api_error.NewApiError(http.StatusUnauthorized, "unauthorized user"))
+		c.JSON(http.StatusUnauthorized, UnauthorizedUserError)
 		return
 	}
 
 	var dto dtos.DepositDTO
-
 	err := c.ShouldBindJSON(&dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, "invalid body"))
+		c.JSON(http.StatusBadRequest, InvalidBodyError)
 		return
 	}
 	err = validation.GetValidatorInstance().Struct(dto)
@@ -88,7 +93,7 @@ func (h AccountImpl) Deposit(c *gin.Context) {
 
 	err = validation.GetValidatorInstance().Var(dto.Currency, fmt.Sprintf("oneof=%s", strings.Join(allowedCurrencies, " ")))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, fmt.Sprintf("The 'Currency' field only accepts the values %s", allowedCurrencies)))
+		c.JSON(http.StatusBadRequest, InvalidCurrencyError)
 		return
 	}
 
@@ -105,15 +110,14 @@ func (h AccountImpl) Withdraw(c *gin.Context) {
 
 	username := auth_utils.GetAuthUser(c)
 	if username == "" {
-		c.JSON(http.StatusUnauthorized, api_error.NewApiError(http.StatusUnauthorized, "unauthorized user"))
+		c.JSON(http.StatusUnauthorized, UnauthorizedUserError)
 		return
 	}
 
 	var dto dtos.WithdrawDTO
-
 	err := c.ShouldBindJSON(&dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, "invalid body"))
+		c.JSON(http.StatusBadRequest, InvalidBodyError)
 		return
 	}
 	err = validation.GetValidatorInstance().Struct(dto)
@@ -124,7 +128,7 @@ func (h AccountImpl) Withdraw(c *gin.Context) {
 
 	err = validation.GetValidatorInstance().Var(dto.Currency, fmt.Sprintf("oneof=%s", strings.Join(allowedCurrencies, " ")))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, fmt.Sprintf("The 'Currency' field only accepts the values %s", allowedCurrencies)))
+		c.JSON(http.StatusBadRequest, InvalidCurrencyError)
 		return
 	}
 
@@ -141,7 +145,7 @@ func (h AccountImpl) GetTransactionHistory(c *gin.Context) {
 
 	username := auth_utils.GetAuthUser(c)
 	if username == "" {
-		c.JSON(http.StatusUnauthorized, api_error.NewApiError(http.StatusUnauthorized, "unauthorized user"))
+		c.JSON(http.StatusUnauthorized, UnauthorizedUserError)
 		return
 	}
 
@@ -152,7 +156,7 @@ func (h AccountImpl) GetTransactionHistory(c *gin.Context) {
 	if limitStr != "" {
 		limit, err = strconv.Atoi(limitStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, "invalid limit param"))
+			c.JSON(http.StatusBadRequest, InvalidLimitParamError)
 		}
 	} else {
 		limit = defaultLimit

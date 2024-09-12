@@ -61,7 +61,6 @@ func (r TransactionImpl) GetTransactionsWithLimit(ctx context.Context, username 
 	defer rows.Close()
 
 	var transactionList []TransactionEntity
-
 	for rows.Next() {
 		var transaction TransactionEntity
 		err = rows.Scan(&transaction.Id, &transaction.UserId, &transaction.AccountId, &transaction.Amount, &transaction.PartialBalance, &transaction.Type, &transaction.Date, &transaction.Currency)

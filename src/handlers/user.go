@@ -18,6 +18,8 @@ var (
 	euros   = "EUR"
 
 	allowedCurrencies = []string{dollars, pesos, euros}
+
+	InvalidCurrencyError = api_error.NewApiError(http.StatusBadRequest, fmt.Sprintf("the 'Currency' field only accepts the values %s", allowedCurrencies))
 )
 
 type User interface {
@@ -44,7 +46,7 @@ func (h UserImpl) CreateUser(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, "Invalid body"))
+		c.JSON(http.StatusBadRequest, InvalidBodyError)
 		return
 	}
 	err = validation.GetValidatorInstance().Struct(dto)
@@ -56,7 +58,7 @@ func (h UserImpl) CreateUser(c *gin.Context) {
 	for _, currency := range dto.Currencies {
 		err = validation.GetValidatorInstance().Var(currency, fmt.Sprintf("oneof=%s", strings.Join(allowedCurrencies, " ")))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, fmt.Sprintf("The 'Currency' field only accepts the values %s", allowedCurrencies)))
+			c.JSON(http.StatusBadRequest, InvalidCurrencyError)
 			return
 		}
 	}

@@ -106,7 +106,6 @@ func (r AccountImpl) GetAccountsByUsername(ctx context.Context, username string)
 
 func (r AccountImpl) UpdateAccountBalance(ctx context.Context, account AccountEntity) error {
 	_, err := r.database.ExecContext(ctx, updateAccountBalanceStmt, account.Balance, account.Id, account.Currency)
-
 	if err != nil {
 		return UnexpectedError
 	}

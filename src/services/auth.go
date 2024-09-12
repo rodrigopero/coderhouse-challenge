@@ -8,14 +8,15 @@ import (
 	"github.com/rodrigopero/coderhouse-challenge/src/handlers/dtos"
 	"github.com/rodrigopero/coderhouse-challenge/src/repositories"
 	"github.com/rodrigopero/coderhouse-challenge/src/utils/api_error"
+	"github.com/rodrigopero/coderhouse-challenge/src/utils/env"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
 )
 
 const (
-	jwtKey            = "c0D3rH0u5E-Ch411eNg3"
-	jwtExpirationTime = time.Hour * time.Duration(15)
+	jwtKeyEnv         = "JWT_KEY"
+	jwtExpirationTime = time.Minute * time.Duration(15)
 	maxLoginAttempts  = 3
 )
 
@@ -23,6 +24,7 @@ var (
 	UnauthorizedError            = api_error.NewApiError(http.StatusUnauthorized, "user not authorized")
 	IncorrectAuthenticationError = api_error.NewApiError(http.StatusUnauthorized, "incorrect username or password")
 	BlockedUserError             = api_error.NewApiError(http.StatusUnauthorized, "user is blocked")
+	UnexpectedError              = api_error.NewApiError(http.StatusUnauthorized, "unexpected error")
 )
 
 type Auth interface {
@@ -46,7 +48,6 @@ func NewAuthImpl(dependencies AuthDependencies) AuthImpl {
 }
 
 func (s AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDTO) (string, error) {
-
 	user, err := s.UserRepository.GetUserByUsername(ctx, dto.Username)
 	if errors.Is(err, repositories.UserNotFoundError) {
 		return "", UnauthorizedError
@@ -63,6 +64,7 @@ func (s AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDT
 		if err != nil {
 			return "", err
 		}
+
 		if user.LoginAttempt > maxLoginAttempts {
 			user.Status = blockedUserStatus
 			err = s.UserRepository.UpdateUserStatus(ctx, *user)
@@ -95,7 +97,12 @@ func (s AuthImpl) IsValidToken(ctx context.Context, token string) bool {
 			return nil, errors.New("invalid method")
 		}
 
-		return []byte(jwtKey), nil
+		key := env.GetEnvVar(jwtKeyEnv)
+		if key == "" {
+			return nil, errors.New("invalid key")
+		}
+
+		return []byte(key), nil
 	})
 
 	if _, ok := tokenData.Claims.(*domain.CustomClaims); ok && tokenData.Valid {
@@ -107,10 +114,15 @@ func (s AuthImpl) IsValidToken(ctx context.Context, token string) bool {
 
 func (s AuthImpl) GetTokenUsername(ctx context.Context, asd string) (string, error) {
 	token, err := jwt.ParseWithClaims(asd, &domain.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(jwtKey), nil
+		key := env.GetEnvVar(jwtKeyEnv)
+		if key == "" {
+			return nil, errors.New("invalid key")
+		}
+
+		return []byte(key), nil
 	})
 	if err != nil {
-		return "", err
+		return "", UnexpectedError
 	}
 
 	claims, _ := token.Claims.(*domain.CustomClaims)
@@ -131,7 +143,13 @@ func generateToken(username string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte(jwtKey))
+
+	key := env.GetEnvVar(jwtKeyEnv)
+	if key == "" {
+		return "", UnexpectedError
+	}
+
+	tokenStr, err := token.SignedString([]byte(key))
 	if err != nil {
 		return "", err
 	}

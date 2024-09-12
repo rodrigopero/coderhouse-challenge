@@ -15,9 +15,10 @@ const (
 )
 
 type Account interface {
-	GetAccount(ctx context.Context, username string) (*domain.Account, error)
-	Deposit(ctx context.Context, username string, amount float64) (*domain.Account, error)
-	Withdraw(ctx context.Context, username string, amount float64) (*domain.Account, error)
+	GetAccount(ctx context.Context, username string, currency string) (*domain.Account, error)
+	GetAllAccounts(ctx context.Context, username string) ([]domain.Account, error)
+	Deposit(ctx context.Context, username string, amount float64, currency string) (*domain.Account, error)
+	Withdraw(ctx context.Context, username string, amount float64, currency string) (*domain.Account, error)
 	GetTransactionsHistory(ctx context.Context, username string, limit int) ([]domain.Transaction, error)
 }
 
@@ -38,8 +39,8 @@ func NewAccountImpl(dependencies AccountDependencies) AccountImpl {
 	}
 }
 
-func (s AccountImpl) GetAccount(ctx context.Context, username string) (*domain.Account, error) {
-	accountEntity, err := s.AccountRepository.GetAccountByUsername(ctx, username)
+func (s AccountImpl) GetAccount(ctx context.Context, username string, currency string) (*domain.Account, error) {
+	accountEntity, err := s.AccountRepository.GetAccountByUsernameAndCurrency(ctx, username, currency)
 
 	if err != nil {
 		return nil, err
@@ -48,8 +49,23 @@ func (s AccountImpl) GetAccount(ctx context.Context, username string) (*domain.A
 	return &domain.Account{Balance: accountEntity.Balance}, nil
 }
 
-func (s AccountImpl) Deposit(ctx context.Context, username string, amount float64) (*domain.Account, error) {
-	accountEntity, err := s.AccountRepository.GetAccountByUsername(ctx, username)
+func (s AccountImpl) GetAllAccounts(ctx context.Context, username string) ([]domain.Account, error) {
+	accountEntities, err := s.AccountRepository.GetAccountsByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []domain.Account
+
+	for _, accountEntity := range accountEntities {
+		accounts = append(accounts, domain.Account{Balance: accountEntity.Balance, Currency: accountEntity.Currency})
+	}
+
+	return accounts, nil
+}
+
+func (s AccountImpl) Deposit(ctx context.Context, username string, amount float64, currency string) (*domain.Account, error) {
+	accountEntity, err := s.AccountRepository.GetAccountByUsernameAndCurrency(ctx, username, currency)
 	if err != nil {
 		return nil, err
 	}
@@ -73,17 +89,17 @@ func (s AccountImpl) Deposit(ctx context.Context, username string, amount float6
 		return nil, err
 	}
 
-	return &domain.Account{Balance: accountEntity.Balance}, nil
+	return &domain.Account{Balance: accountEntity.Balance, Currency: accountEntity.Currency}, nil
 }
 
-func (s AccountImpl) Withdraw(ctx context.Context, username string, amount float64) (*domain.Account, error) {
-	accountEntity, err := s.AccountRepository.GetAccountByUsername(ctx, username)
+func (s AccountImpl) Withdraw(ctx context.Context, username string, amount float64, currency string) (*domain.Account, error) {
+	accountEntity, err := s.AccountRepository.GetAccountByUsernameAndCurrency(ctx, username, currency)
 	if err != nil {
 		return nil, err
 	}
 
 	if accountEntity.Balance-amount < 0 {
-		return nil, api_error.NewApiError(http.StatusBadRequest, "the account has insufficient funds")
+		return nil, api_error.NewApiError(http.StatusBadRequest, "The account has insufficient funds")
 	}
 
 	accountEntity.Balance -= amount
@@ -105,16 +121,11 @@ func (s AccountImpl) Withdraw(ctx context.Context, username string, amount float
 		return nil, err
 	}
 
-	return &domain.Account{Balance: accountEntity.Balance}, nil
+	return &domain.Account{Balance: accountEntity.Balance, Currency: accountEntity.Currency}, nil
 }
 
 func (s AccountImpl) GetTransactionsHistory(ctx context.Context, username string, limit int) ([]domain.Transaction, error) {
-	accountEntity, err := s.AccountRepository.GetAccountByUsername(ctx, username)
-	if err != nil {
-		return nil, err
-	}
-
-	transactionEntityList, err := s.TransactionRepository.GetTransactionsWithLimit(ctx, username, accountEntity.Id, limit)
+	transactionEntityList, err := s.TransactionRepository.GetTransactionsWithLimit(ctx, username, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +147,7 @@ func (s AccountImpl) GetTransactionsHistory(ctx context.Context, username string
 				Type:           transactionEntity.Type,
 				PartialBalance: transactionEntity.PartialBalance,
 				Date:           parsedTime,
+				Currency:       transactionEntity.Currency,
 			},
 		)
 	}

@@ -3,6 +3,8 @@ package validation
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"reflect"
+	"strings"
 )
 
 var validatorInstance *validator.Validate
@@ -15,22 +17,26 @@ func GetValidatorInstance() *validator.Validate {
 	return validatorInstance
 }
 
-func GetErrorList(errors validator.ValidationErrors) []string {
+func GetErrors(errors validator.ValidationErrors) string {
 	var errorMsgs []string
 	var errorMsg string
 
 	for _, fieldError := range errors {
 
-		switch fieldError.Tag() {
-		case "required":
+		switch {
+		case fieldError.Tag() == "required":
 			errorMsg = fmt.Sprintf("The '%s' field is required.", fieldError.Field())
-		case "gte":
-			errorMsg = fmt.Sprintf("The '%s' field must have %s characters at least.", fieldError.Field(), fieldError.Param())
-		case "gt":
+		case fieldError.Tag() == "gte" && fieldError.Kind() == reflect.String:
+			errorMsg = fmt.Sprintf("The '%s' field must have at least %s characters.", fieldError.Field(), fieldError.Param())
+		case fieldError.Tag() == "gt" && fieldError.Kind() == reflect.String:
+			errorMsg = fmt.Sprintf("The '%s' field must have more than %s characters.", fieldError.Field(), fieldError.Param())
+		case fieldError.Tag() == "gt" && fieldError.Kind() == reflect.Float64:
 			errorMsg = fmt.Sprintf("The '%s' field must be greater than %s.", fieldError.Field(), fieldError.Param())
-		case "lte":
-			errorMsg = fmt.Sprintf("The '%s' field must have a maximum of %s characters", fieldError.Field(), fieldError.Param())
-		case "alphanum":
+		case fieldError.Tag() == "gt" && fieldError.Kind() == reflect.Slice:
+			errorMsg = fmt.Sprintf("The '%s' field must have more than %s values.", fieldError.Field(), fieldError.Param())
+		case fieldError.Tag() == "lte" && fieldError.Kind() == reflect.String:
+			errorMsg = fmt.Sprintf("The '%s' field must have less than %s characters.", fieldError.Field(), fieldError.Param())
+		case fieldError.Tag() == "alphanum" && fieldError.Kind() == reflect.String:
 			errorMsg = fmt.Sprintf("The '%s' field only supports alphanumeric values", fieldError.Field())
 		default:
 			errorMsg = fmt.Sprintf("The '%s' field have an invalid value.", fieldError.Field())
@@ -40,5 +46,5 @@ func GetErrorList(errors validator.ValidationErrors) []string {
 
 	}
 
-	return errorMsgs
+	return strings.Join(errorMsgs, " ")
 }

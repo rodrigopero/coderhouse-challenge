@@ -15,7 +15,7 @@ import (
 
 const (
 	jwtKey            = "c0D3rH0u5E-Ch411eNg3"
-	jwtExpirationTime = time.Minute * time.Duration(15)
+	jwtExpirationTime = time.Hour * time.Duration(15)
 	maxLoginAttempts  = 3
 )
 
@@ -58,7 +58,6 @@ func (s AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDT
 
 	passwordValid := checkValidPassword(user.Password, dto.Password)
 	if !passwordValid {
-
 		user.LoginAttempt += 1
 		err = s.UserRepository.UpdateUserLoginAttempt(ctx, *user)
 		if err != nil {
@@ -71,6 +70,14 @@ func (s AuthImpl) AuthenticateUser(ctx context.Context, dto dtos.AuthorizationDT
 		}
 
 		return "", IncorrectAuthenticationError
+	}
+
+	if user.LoginAttempt > 0 {
+		user.LoginAttempt = 0
+		err = s.UserRepository.UpdateUserLoginAttempt(ctx, *user)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	token, err := generateToken(user.Username)

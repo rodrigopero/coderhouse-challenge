@@ -5,7 +5,8 @@ import (
 )
 
 type Account struct {
-	Balance float64
+	Balance  float64
+	Currency string
 }
 
 type Transaction struct {
@@ -15,4 +16,5 @@ type Transaction struct {
 	Type           string
 	PartialBalance float64
 	Date           time.Time
+	Currency       string
 }

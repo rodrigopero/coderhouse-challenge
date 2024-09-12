@@ -18,6 +18,7 @@ const (
 
 var (
 	UserNotFoundError = api_error.NewApiError(http.StatusNotFound, "user not found")
+	UnexpectedError   = api_error.NewApiError(http.StatusInternalServerError, "unexpected error")
 )
 
 type User interface {
@@ -56,12 +57,12 @@ func (r UserImpl) SaveUser(ctx context.Context, user UserEntity) (int, error) {
 
 	res, err := r.database.ExecContext(ctx, insertUserStmt, user.Username, user.Password, timeNow, timeNow, user.Status, user.LoginAttempt)
 	if err != nil {
-		return 0, err
+		return 0, UnexpectedError
 	}
 
 	insertedId, err := res.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, UnexpectedError
 	}
 
 	return int(insertedId), nil
@@ -76,7 +77,7 @@ func (r UserImpl) GetUserByUsername(ctx context.Context, username string) (*User
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, UserNotFoundError
 		}
-		return nil, err
+		return nil, UnexpectedError
 	}
 
 	return &user, nil
@@ -86,7 +87,7 @@ func (r UserImpl) UpdateUserLoginAttempt(ctx context.Context, user UserEntity) e
 	_, err := r.database.ExecContext(ctx, updateUserLoginAttemptStmt, user.LoginAttempt, user.Id)
 
 	if err != nil {
-		return err
+		return UnexpectedError
 	}
 
 	return nil
@@ -96,7 +97,7 @@ func (r UserImpl) UpdateUserStatus(ctx context.Context, user UserEntity) error {
 	_, err := r.database.ExecContext(ctx, updateUserStatusStmt, user.Status, user.Id)
 
 	if err != nil {
-		return err
+		return UnexpectedError
 	}
 
 	return nil

@@ -8,12 +8,12 @@ import (
 
 const (
 	insertTransactionStmt        = `INSERT INTO TRANSACTIONS (USER_ID, ACCOUNT_ID, AMOUNT, PARTIAL_BALANCE, TYPE, "DATE") VALUES (?,?,?,?,?,?)`
-	getTransactionsWithLimitStmt = `SELECT T.ID, T.USER_ID, T.ACCOUNT_ID, T.AMOUNT, T.PARTIAL_BALANCE, T.TYPE, T."DATE" FROM TRANSACTIONS T JOIN MAIN.USERS U ON U.ID = T.USER_ID WHERE U.USERNAME = ? AND T.ACCOUNT_ID = ? ORDER BY DATE DESC LIMIT ?`
+	getTransactionsWithLimitStmt = `SELECT T.ID, T.USER_ID, T.ACCOUNT_ID, T.AMOUNT, T.PARTIAL_BALANCE, T.TYPE, T."DATE", A.CURRENCY FROM TRANSACTIONS T JOIN USERS U ON U.ID = T.USER_ID JOIN ACCOUNTS A ON T.ACCOUNT_ID = A.ID WHERE U.USERNAME = ? ORDER BY DATE DESC LIMIT ?`
 )
 
 type Transaction interface {
 	SaveTransaction(ctx context.Context, transaction TransactionEntity) error
-	GetTransactionsWithLimit(ctx context.Context, username string, accountID int, limit int) ([]TransactionEntity, error)
+	GetTransactionsWithLimit(ctx context.Context, username string, limit int) ([]TransactionEntity, error)
 }
 
 type TransactionImpl struct {
@@ -38,6 +38,7 @@ type TransactionEntity struct {
 	PartialBalance float64
 	Type           string
 	Date           string
+	Currency       string
 }
 
 func (r TransactionImpl) SaveTransaction(ctx context.Context, transaction TransactionEntity) error {
@@ -46,16 +47,16 @@ func (r TransactionImpl) SaveTransaction(ctx context.Context, transaction Transa
 	_, err := r.database.ExecContext(ctx, insertTransactionStmt, transaction.UserId, transaction.AccountId,
 		transaction.Amount, transaction.PartialBalance, transaction.Type, timeNow, timeNow)
 	if err != nil {
-		return err
+		return UnexpectedError
 	}
 
 	return nil
 }
 
-func (r TransactionImpl) GetTransactionsWithLimit(ctx context.Context, username string, accountID int, limit int) ([]TransactionEntity, error) {
-	rows, err := r.database.QueryContext(ctx, getTransactionsWithLimitStmt, username, accountID, limit)
+func (r TransactionImpl) GetTransactionsWithLimit(ctx context.Context, username string, limit int) ([]TransactionEntity, error) {
+	rows, err := r.database.QueryContext(ctx, getTransactionsWithLimitStmt, username, limit)
 	if err != nil {
-		return nil, err
+		return nil, UnexpectedError
 	}
 	defer rows.Close()
 
@@ -63,16 +64,16 @@ func (r TransactionImpl) GetTransactionsWithLimit(ctx context.Context, username 
 
 	for rows.Next() {
 		var transaction TransactionEntity
-		err := rows.Scan(&transaction.Id, &transaction.UserId, &transaction.AccountId, &transaction.Amount, &transaction.PartialBalance, &transaction.Type, &transaction.Date)
+		err = rows.Scan(&transaction.Id, &transaction.UserId, &transaction.AccountId, &transaction.Amount, &transaction.PartialBalance, &transaction.Type, &transaction.Date, &transaction.Currency)
 		if err != nil {
-			return nil, err
+			return nil, UnexpectedError
 		}
 
 		transactionList = append(transactionList, transaction)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, UnexpectedError
 	}
 
 	return transactionList, nil

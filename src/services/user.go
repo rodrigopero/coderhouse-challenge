@@ -65,13 +65,15 @@ func (s UserImpl) CreateUser(ctx context.Context, dto dtos.CreateUserDTO) error 
 		return err
 	}
 
-	accountEntity := repositories.AccountEntity{
-		UserId: userId,
-	}
-
-	err = s.accountRepository.SaveAccount(ctx, accountEntity)
-	if err != nil {
-		return err
+	for _, currency := range dto.Currencies {
+		accountEntity := repositories.AccountEntity{
+			UserId:   userId,
+			Currency: currency,
+		}
+		err = s.accountRepository.SaveAccount(ctx, accountEntity)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

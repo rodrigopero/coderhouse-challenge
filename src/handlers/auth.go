@@ -38,13 +38,13 @@ func (h AuthImpl) Authenticate(c *gin.Context) {
 	ctx := c.Request.Context()
 	var dto dtos.AuthorizationDTO
 
-	err := c.BindJSON(&dto)
+	err := c.ShouldBindJSON(&dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, "invalid body")
+		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, "invalid body"))
 	}
 	err = validation.GetValidatorInstance().Struct(dto)
 	if err != nil {
-		c.JSON(api_error.GetStatus(err), validation.GetErrorList(err.(validator.ValidationErrors)))
+		c.JSON(http.StatusBadRequest, api_error.NewApiError(http.StatusBadRequest, validation.GetErrors(err.(validator.ValidationErrors))))
 		return
 	}
 
